@@ -1,21 +1,23 @@
 import asyncio
 import re
 import os
+from dotenv import load_dotenv
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 from core import download_youtube
 
-FILE = os.path.basename(__name__)
-TOKEN: str = os.environ['TOKEN']
-BOT_USERNAME: str = os.environ['BOT_USERNAME']
+load_dotenv()
+TOKEN: str = os.getenv['TOKEN']
+BOT_USERNAME: str = os.getenv['BOT_USERNAME']
+
 URL_RE = re.compile(r"https?://\S+")
 
 #===================================================================================================
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text('reply')
+    await update.message.reply_text('start')
     
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('help')
@@ -37,7 +39,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text: str = update.message.text
     response: str = handle_response(text)
     
-    print(text)
+    print(message_type,'\n', text)
     
     url = URL_RE.findall(text)[0] if URL_RE.findall(text) else False
     if not url: return
@@ -73,7 +75,7 @@ async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #===================================================================================================
 
 def main():
-    print(f'[{FILE}] Starting...')
+    print(f'[{__name__}] Starting...')
     
     app = Application.builder().token(TOKEN).build()
     
@@ -89,7 +91,7 @@ def main():
     # Errors
     app.add_error_handler(error)
     
-    print(f'[{FILE}] Polling...')
+    print(f'[{__name__}] Polling...')
     app.run_polling(poll_interval=1)
     
 if __name__ == '__main__':
