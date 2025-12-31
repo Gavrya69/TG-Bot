@@ -35,17 +35,16 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     url = URL_RE.findall(text)[0] if URL_RE.findall(text) else False
     if not url: return
-    
-    buttons = [
+    buttons = InlineKeyboardMarkup([
         [
             InlineKeyboardButton('Да', callback_data=url),
             InlineKeyboardButton('Нет', callback_data=None),
         ]
-    ]
-
+    ])
+    
     await update.message.reply_text(
         'Скачать?',
-        reply_markup=InlineKeyboardMarkup(buttons),
+        reply_markup=buttons,
     )
 
 
