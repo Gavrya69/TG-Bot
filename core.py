@@ -2,8 +2,10 @@ import yt_dlp
 import os
 
 OUTPUT_PATH = r'.\temp'
+FILE = os.path.basename(__file__)
 
 def download_youtube(url):
+    
     ydl_opts = {
         'format': 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]',
         'outtmpl': os.path.join(OUTPUT_PATH, '%(title)s.%(ext)s'),
@@ -16,7 +18,7 @@ def download_youtube(url):
     }
 
     try:
-        print(f'Preparing to download: {url}')
+        print(f'[{FILE}] Preparing to download: {url}')
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
@@ -25,9 +27,9 @@ def download_youtube(url):
         width = info.get('width')
         height = info.get('height')
 
-        print(f'Successfully downloaded: {filename}')
+        print(f'[{FILE}] Successfully downloaded: {filename}')
         return filename, width, height
 
     except yt_dlp.utils.DownloadError as e:
-        print(f'Download error: {e}')
+        print(f'[{FILE}] Download error: {e}')
         return None

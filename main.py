@@ -1,4 +1,3 @@
-from typing import Final
 import asyncio
 import re
 import os
@@ -8,11 +7,8 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 
 from core import download_youtube
 
-from dotenv import load_dotenv
-load_dotenv()
-
-TOKEN: Final = os.getenv('TOKEN')
-BOT_USERNAME: Final = os.getenv('BOT_USERNAME')
+TOKEN: str = os.environ['TOKEN']
+BOT_USERNAME: str = os.environ['BOT_USERNAME']
 URL_RE = re.compile(r"https?://\S+")
 
 #===================================================================================================
