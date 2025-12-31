@@ -1,7 +1,7 @@
 import yt_dlp
 import os
 
-OUTPUT_PATH = r'C:\MY\Projects\TG Bot\temp'
+OUTPUT_PATH = r'.\temp'
 
 def download_youtube(url):
     ydl_opts = {
