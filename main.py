@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 TOKEN: Final = os.getenv('TOKEN')
-BOT_USERNAME: Final = '@Muhins_son_bot'
+BOT_USERNAME: Final = os.getenv('BOT_USERNAME')
 URL_RE = re.compile(r"https?://\S+")
 
 #===================================================================================================
