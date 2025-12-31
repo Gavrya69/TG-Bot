@@ -9,8 +9,8 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 from core import download_youtube
 
 load_dotenv()
-TOKEN: str = os.getenv['TOKEN']
-BOT_USERNAME: str = os.getenv['BOT_USERNAME']
+TOKEN: str = os.getenv('TOKEN')
+BOT_USERNAME: str = os.getenv('BOT_USERNAME')
 
 URL_RE = re.compile(r"https?://\S+")
 
