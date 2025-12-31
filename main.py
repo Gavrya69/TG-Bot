@@ -7,6 +7,7 @@ from telegram.ext import Application, CommandHandler, MessageHandler, filters, C
 
 from core import download_youtube
 
+FILE = os.path.basename(__name__)
 TOKEN: str = os.environ['TOKEN']
 BOT_USERNAME: str = os.environ['BOT_USERNAME']
 URL_RE = re.compile(r"https?://\S+")
@@ -24,7 +25,7 @@ async def custom_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
 #===================================================================================================
 
-# Responses
+
 def handle_response(text: str) -> str:
     processed: str = text.lower()
     
@@ -72,7 +73,7 @@ async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #===================================================================================================
 
 def main():
-    print('Starting...')
+    print(f'[{FILE}] Starting...')
     
     app = Application.builder().token(TOKEN).build()
     
@@ -88,7 +89,7 @@ def main():
     # Errors
     app.add_error_handler(error)
     
-    print('Polling...')
+    print(f'[{FILE}] Polling...')
     app.run_polling(poll_interval=1)
     
 if __name__ == '__main__':
