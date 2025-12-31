@@ -6,7 +6,9 @@ FILE = os.path.basename(__file__)
 
 def download_youtube(url):
     
-    os.makedirs(r".\temp", exist_ok=True)
+    if not os.path.exists(OUTPUT_PATH):
+        os.mkdir(OUTPUT_PATH)
+        print(f'[{__name__}] Created folder {OUTPUT_PATH}')
     
     ydl_opts = {
         'format': 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]',

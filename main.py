@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CallbackQueryHandler
 
 from core import download_youtube
 
@@ -27,40 +29,52 @@ async def custom_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
 #===================================================================================================
 
-
-def handle_response(text: str) -> str:
-    processed: str = text.lower()
-    
-    return '?'
-    
     
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message_type: str = update.message.chat.type
     text: str = update.message.text
-    response: str = handle_response(text)
-    
-    print(message_type,'\n', text)
     
     url = URL_RE.findall(text)[0] if URL_RE.findall(text) else False
     if not url: return
     
-    await update.message.reply_text('Ща погодь...')
+    buttons = [
+        [
+            InlineKeyboardButton('Да', callback_data=url),
+            InlineKeyboardButton('Нет', callback_data=None),
+        ]
+    ]
+
+    await update.message.reply_text(
+        'Скачать?',
+        reply_markup=InlineKeyboardMarkup(buttons),
+    )
+
+
+async def handle_button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    url = query.data
+
+    if not url :
+        await query.edit_message_text('Мне в падлу скачивать')
+        return
+
+    await query.edit_message_text('Ша погодь...')
+
     loop = asyncio.get_running_loop()
     video_path, w, h = await loop.run_in_executor(None, download_youtube, url)
-    
-    if not video_path: 
-        await update.message.reply_text('Нихуя не вышло((9(')
+
+    if not video_path:
+        await query.message.reply_text('Бля, не вышло(((')
         return
-    
-    await update.message.reply_text('Ща-ща-ща, почти...')
-    
-    await update.message.reply_video(
+
+    await query.message.reply_video(
         video=open(video_path, 'rb'),
         caption=f'Заебок))0), лови в {w}x{h}'
     )
-    
+
     os.remove(video_path)
-    
+
     
 async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
     #print(f'Update {update} caused error {context.error}')
