@@ -1,6 +1,9 @@
 import os
+import asyncio
 from aiogram import Router, F
 from aiogram.types import CallbackQuery, FSInputFile
+from aiogram.exceptions import TelegramNetworkError
+
 from services.downloader import download_youtube
 
 router = Router()
@@ -13,10 +16,15 @@ async def cancel_download(callback: CallbackQuery):
 
 @router.callback_query(F.data =='dl_yes')
 async def start_download(callback: CallbackQuery):
-    user_msg = callback.message.reply_to_message
-    msg = await callback.message.edit_text('Ща скачаю погодь...')
+    await callback.message.edit_text('Ща скачаю погодь...')
+    await callback.answer()
     
-    filename = download_youtube(callback.message.reply_to_message.text)
+    loop = asyncio.get_running_loop()
+    filename = await loop.run_in_executor(
+        None,
+        download_youtube,
+        callback.message.reply_to_message.text
+    )
     
     if not filename:
         await callback.message.edit_text('Чот не вышло нихуя(')
@@ -25,12 +33,18 @@ async def start_download(callback: CallbackQuery):
     
     await callback.message.edit_text('Ща скину щащаща...')
     
-    await user_msg.reply_video(
-        video=FSInputFile(filename),
-        caption='Лови видосик'
-    )
-    
+
+    try:
+        await callback.message.answer_video(
+            video=FSInputFile(filename),
+            caption='Лови видосик',
+            request_timeout=120
+        )
+    except TelegramNetworkError:
+        await callback.message.answer(
+            'Бот гавно, словил exceprion TelegramNetworkError((('
+        )
+        
     os.remove(filename)
-    await msg.delete()
-    await callback.answer()
+    await callback.message.delete()
     

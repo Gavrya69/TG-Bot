@@ -11,8 +11,10 @@ def download_youtube(url):
         print(f'[{__name__}] Created folder {OUTPUT_PATH}')
     
     ydl_opts = {
-        'format': 'bv*[ext=mp4]+ba[ext=m4a]/b[ext=mp4]',
-        'outtmpl': os.path.join(OUTPUT_PATH, '%(title)s.%(ext)s'),
+        'format': (
+            'bv*[ext=mp4][height<=720][vcodec~="^avc"]'
+            '+ba[ext=m4a]/b[ext=mp4][height<=720]'
+        ),
         'merge_output_format': 'mp4',
         'noplaylist': True,
         'extractor_args': {
