@@ -1,27 +1,25 @@
 import asyncio
-
 from aiogram import Bot, Dispatcher
-from aiogram.filters import CommandStart, Command
-from aiogram.types import Message
 
-bot = Bot(token='123')
+import os
+
+from handlers.commands import router as commands_router
+from handlers.links import router as links_router
+from handlers.callbacks import router as callbacks_router
+
+from dotenv import load_dotenv
+load_dotenv() 
+
+bot = Bot(token=os.getenv('TOKEN'))
 dp= Dispatcher()
 
-
-@dp.message(CommandStart())
-async def cmd_start(message: Message):
-    await message.answer('start')
-
-
-@dp.message(Command('help'))
-async def cmd_help(message: Message):
-    await message.answer('help')
-
-
+dp.include_router(commands_router)
+dp.include_router(links_router)
+dp.include_router(callbacks_router)
 
 async def main():
     await dp.start_polling(bot)
-    
+
 if __name__ == '__main__':
     try:
         asyncio.run(main())
