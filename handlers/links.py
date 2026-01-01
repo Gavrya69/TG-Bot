@@ -1,8 +1,6 @@
 import re
 from aiogram import Router
-from aiogram.types import Message
-
-from keyboards.download import download_keyboard
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 
 router = Router()
 
@@ -18,8 +16,20 @@ async def detect_link(message: Message):
         return
 
     url = match.group(0)
-
+    
     await message.reply(
         'Опа, фиксируем?',
-        reply_markup=download_keyboard(url)
-    )
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text='Да',
+                        callback_data=f'dl_yes'
+                    ),
+                    InlineKeyboardButton(
+                        text='Нет',
+                        callback_data='dl_no'
+                    ),
+                ]
+            ]
+        ))

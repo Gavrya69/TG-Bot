@@ -18,7 +18,8 @@ def download_youtube(url):
         'extractor_args': {
             'youtube': ['player_client=android']
         },
-        'quiet': False
+        'quiet': False,
+        'cookiefile': 'cookies.txt'
     }
 
     try:
@@ -32,7 +33,7 @@ def download_youtube(url):
         height = info.get('height')
 
         print(f'[{__name__}] Successfully downloaded: {filename}({height}p)')
-        return filename, width, height
+        return filename
 
     except yt_dlp.utils.DownloadError as e:
         print(f'[{__name__}] Download error: {e}')

@@ -18,6 +18,7 @@ dp.include_router(links_router)
 dp.include_router(callbacks_router)
 
 async def main():
+    print(f'[{__name__}] Start.')
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
