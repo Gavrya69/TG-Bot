@@ -6,7 +6,7 @@ OUTPUT_PATH = r'.\temp'
 def download_youtube(url):
     
     if not os.path.exists(OUTPUT_PATH):
-        os.mkdir(OUTPUT_PATH)
+        os.mkdirs(OUTPUT_PATH, exist_ok=True)
         print(f'[{__name__}] Created folder {OUTPUT_PATH}')
     
     ydl_opts = {
@@ -14,12 +14,12 @@ def download_youtube(url):
             'bv*[ext=mp4][height<=720][vcodec~="^avc"]+ba[ext=m4a]'
             '/b[ext=mp4][height<=720]'
         ),
-        'merge_output_format': 'mp4',
         'noplaylist': True,
         'extractor_args': {
             'youtube': ['player_client=android']
         },
         'quiet': True,
+        'outtmpl': os.path.join(OUTPUT_PATH, '%(title)s [%(id)s].%(ext)s')
     }
 
     try:
@@ -32,7 +32,7 @@ def download_youtube(url):
         width = info.get('width')
         height = info.get('height')
 
-        print(f'[{__name__}] Successfully downloaded: {filename}({height}p)')
+        print(f'[{__name__}] Successfully downloaded: {filename} ({height}p)')
         return filename
 
     except yt_dlp.utils.DownloadError as e:
