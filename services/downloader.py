@@ -6,8 +6,7 @@ OUTPUT_PATH = r'.\temp'
 MAX_SIZE = 50 * 1024 * 1024 # 50 MB
 
 
-def download_youtube(url):
-    
+def download_video(url):
     os.makedirs(OUTPUT_PATH, exist_ok=True)
     
     ydl_opts = {

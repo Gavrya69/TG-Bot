@@ -4,7 +4,7 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery, FSInputFile
 from aiogram.exceptions import TelegramNetworkError
 
-from services.downloader import download_youtube
+from services.downloader import download_video
 
 router = Router()
 
@@ -22,7 +22,7 @@ async def start_download(callback: CallbackQuery):
     loop = asyncio.get_running_loop()
     filename = await loop.run_in_executor(
         None,
-        download_youtube,
+        download_video,
         callback.message.reply_to_message.text
     )
     
