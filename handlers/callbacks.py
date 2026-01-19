@@ -11,7 +11,7 @@ router = Router()
 @router.callback_query(F.data =='dl_no')
 async def cancel_download(callback: CallbackQuery):
     
-    await callback.message.edit_text('похуй, не хочу скачивать')
+    await callback.message.delete()
     await callback.answer()
 
 @router.callback_query(F.data =='dl_yes')

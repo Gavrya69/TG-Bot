@@ -2,7 +2,6 @@ import yt_dlp
 import os
 
 OUTPUT_PATH = r'.\temp'
-FILE = os.path.basename(__file__)
 
 def download_youtube(url):
     
@@ -12,16 +11,15 @@ def download_youtube(url):
     
     ydl_opts = {
         'format': (
-            'bv*[ext=mp4][height<=720][vcodec~="^avc"]'
-            '+ba[ext=m4a]/b[ext=mp4][height<=720]'
+            'bv*[ext=mp4][height<=720][vcodec~="^avc"]+ba[ext=m4a]'
+            '/b[ext=mp4][height<=720]'
         ),
         'merge_output_format': 'mp4',
         'noplaylist': True,
         'extractor_args': {
             'youtube': ['player_client=android']
         },
-        'quiet': False,
-        'cookiefile': 'cookies.txt'
+        'quiet': True,
     }
 
     try:
