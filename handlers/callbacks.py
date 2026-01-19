@@ -32,7 +32,6 @@ async def start_download(callback: CallbackQuery):
         return
     
     await callback.message.edit_text('Ща скину щащаща...')
-    
 
     try:
         await callback.message.answer_video(
@@ -41,9 +40,8 @@ async def start_download(callback: CallbackQuery):
             request_timeout=120
         )
     except TelegramNetworkError:
-        await callback.message.answer(
-            'Бот гавно, словил exceprion TelegramNetworkError((('
-        )
+        await callback.message.edit_text('Бот гавно, словил exceprion TelegramNetworkError(((')
+        await callback.answer()
         
     os.remove(filename)
     await callback.message.delete()
