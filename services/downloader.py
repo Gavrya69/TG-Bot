@@ -1,13 +1,16 @@
 import yt_dlp
 import os
 
-OUTPUT_PATH = r'.\temp'
+OUTPUT_PATH = '.temp'
 
-def download_youtube(url):
-    
+def check_outpath_exist():
     if not os.path.exists(OUTPUT_PATH):
         os.mkdirs(OUTPUT_PATH, exist_ok=True)
         print(f'[{__name__}] Created folder {OUTPUT_PATH}')
+
+def download_youtube(url):
+    
+    check_outpath_exist()
     
     ydl_opts = {
         'format': (
@@ -38,3 +41,4 @@ def download_youtube(url):
     except yt_dlp.utils.DownloadError as e:
         print(f'[{__name__}] Download error: {e}')
         return None
+
