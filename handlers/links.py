@@ -18,16 +18,16 @@ async def detect_link(message: Message):
     url = match.group(0)
     
     await message.reply(
-        'Опа, фиксируем?',
+        'Download?',
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
-                        text='Да',
+                        text='Yes',
                         callback_data=f'dl_yes'
                     ),
                     InlineKeyboardButton(
-                        text='Нет',
+                        text='No',
                         callback_data='dl_no'
                     ),
                 ]
