@@ -38,7 +38,7 @@ def download_youtube(url):
                     best_formats.append((file_size, f))
 
             if not best_formats:
-                print(f'[{__name__}] Format not found: {filename}')
+                print(f'[{__name__}] Format not found: {url}')
                 return None
             
             selected_format = max(best_formats, key=lambda x: x[0])[1]
@@ -51,7 +51,7 @@ def download_youtube(url):
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
 
-        print(f'[{__name__}] Successfully downloaded: {filename}')
+        print(f'[{__name__}] Successfully downloaded {filename}: {url}')
         return filename
 
     except yt_dlp.utils.DownloadError as e:
