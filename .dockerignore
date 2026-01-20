@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+*.pyd
+.venv/
+.git
+.gitignore
+temp/
+test.py
