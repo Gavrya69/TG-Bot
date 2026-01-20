@@ -18,7 +18,7 @@ TIKTOK_RE = re.compile(
 async def detect_link(message: Message):
     if not message.text:
         return
-
+    
     yt = YOUTUBE_RE.search(message.text)
     tt = TIKTOK_RE.search(message.text)
 
@@ -31,6 +31,7 @@ async def detect_link(message: Message):
     else:
         return
     
+    print(f'[{__name__}] Detected link: {message.text}')
     await message.reply(
         'Download?',
         reply_markup=InlineKeyboardMarkup(

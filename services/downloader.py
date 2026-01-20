@@ -5,75 +5,136 @@ import os
 OUTPUT_PATH = r'.\temp'
 MAX_SIZE = 50 * 1024 * 1024 # 50 MB
 
-YT_OPTS = {
-        'format': (
-            'bv*[ext=mp4][height<=720][vcodec~="^avc"]+ba[ext=m4a]'
-            '/b[ext=mp4][height<=720]'
-        ),
-        'merge_output_format': 'mp4',
-        'noplaylist': True,
-        'extractor_args': {
-            'youtube': ['player_client=android']
-        },
-        'quiet': True,
-        'outtmpl': os.path.join(OUTPUT_PATH, '%(title)s [%(id)s].%(ext)s')
-    }
-TT_OPTS = {
-        'format': 'mp4',
+YT_OPTS_LIST = [
+    {
+        'format': 'bv*[ext=mp4][height<=1080][vcodec~="^avc"]+ba[ext=m4a]/b[ext=mp4][height<=1080]',
         'merge_output_format': 'mp4',
         'noplaylist': True,
         'quiet': True,
+        'no_warnings': True,
+        'extractor_args': {'youtube': ['player_client=android']},
         'outtmpl': os.path.join(OUTPUT_PATH, '%(title)s [%(id)s].%(ext)s'),
-        # 'http_headers': {
-        #     'User-Agent': (
-        #         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-        #         'AppleWebKit/537.36 (KHTML, like Gecko) '
-        #         'Chrome/120.0.0.0 Safari/537.36'
-        #     )
-        # },
-    }
+    },
+    {
+        'format': 'bv*[ext=mp4][height<=720][vcodec~="^avc"]+ba[ext=m4a]/b[ext=mp4][height<=720]',
+        'merge_output_format': 'mp4',
+        'noplaylist': True,
+        'quiet': True,
+        'no_warnings': True,
+        'extractor_args': {'youtube': ['player_client=android']},
+        'outtmpl': os.path.join(OUTPUT_PATH, '%(title)s [%(id)s].%(ext)s'),
+    },
+    {
+        'format': 'bv*[ext=mp4][height<=480][vcodec~="^avc"]+ba[ext=m4a]/b[ext=mp4][height<=480]',
+        'merge_output_format': 'mp4',
+        'noplaylist': True,
+        'quiet': True,
+        'no_warnings': True,
+        'extractor_args': {'youtube': ['player_client=android']},
+        'outtmpl': os.path.join(OUTPUT_PATH, '%(title)s [%(id)s].%(ext)s'),
+    },
+    {
+        'format': 'bv*[ext=mp4][height<=360][vcodec~="^avc"]+ba[ext=m4a]/b[ext=mp4][height<=360]',
+        'merge_output_format': 'mp4',
+        'noplaylist': True,
+        'quiet': True,
+        'no_warnings': True,
+        'extractor_args': {'youtube': ['player_client=android']},
+        'outtmpl': os.path.join(OUTPUT_PATH, '%(title)s [%(id)s].%(ext)s'),
+    },
+]
+
+TT_OPTS_LIST = [
+    {
+        'format': 'mp4[height<=1080]',
+        'merge_output_format': 'mp4',
+        'noplaylist': True,
+        'quiet': True,
+        'no_warnings': True,
+        'outtmpl': os.path.join(OUTPUT_PATH, '%(title)s [%(id)s].%(ext)s'),
+    },
+    {
+        'format': 'mp4[height<=720]',
+        'merge_output_format': 'mp4',
+        'noplaylist': True,
+        'quiet': True,
+        'no_warnings': True,
+        'outtmpl': os.path.join(OUTPUT_PATH, '%(title)s [%(id)s].%(ext)s'),
+    },
+    {
+        'format': 'mp4[height<=480]',
+        'merge_output_format': 'mp4',
+        'noplaylist': True,
+        'quiet': True,
+        'no_warnings': True,
+        'outtmpl': os.path.join(OUTPUT_PATH, '%(title)s [%(id)s].%(ext)s'),
+    },
+    {
+        'format': 'mp4[height<=360]',
+        'merge_output_format': 'mp4',
+        'noplaylist': True,
+        'quiet': True,
+        'no_warnings': True,
+        'outtmpl': os.path.join(OUTPUT_PATH, '%(title)s [%(id)s].%(ext)s'),
+    },
+]
 
 
-def check_youtube(url):
+def select_format_youtube(url):
     try:
         print(f'[{__name__}] Searching for the best format: {url}')
         
-        with yt_dlp.YoutubeDL(YT_OPTS) as ydl:
-            info = ydl.extract_info(url, download=False)
-            formats = info.get('formats', [])
-            
-            best_formats = []
-            for f in formats:
-                if f.get('ext') != 'mp4' or f.get('vcodec') == 'none':
-                    continue
-                file_size = f.get('filesize') or f.get('filesize_approx')
+        for ydl_opts in YT_OPTS_LIST:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                
+                selected_format = list(ydl.format_selector(info))[0]
+                file_size = selected_format.get('filesize') or selected_format.get('filesize_approx')
+                file_resolution = selected_format.get('resolution')
+                
                 if file_size and file_size <= MAX_SIZE:
-                    best_formats.append((file_size, f))
-
-            if not best_formats:
-                print(f'[{__name__}] Format not found: {url}')
-                return None
-            
-            print(f'[{__name__}] Founded the best format: {url}')
-            selected_format = max(best_formats, key=lambda x: x[0])[1]
-            return selected_format
-        
-    except yt_dlp.utils.DownloadError as e:
-        print(f'[{__name__}] Checking error {e}: {url}')
+                    return selected_format
+                
+                if file_size and file_resolution:
+                    print(f'[{__name__}] Too big file ({file_resolution} - {(file_size/1024/1024):.3}): {url}')
         return None
+                    
+    except yt_dlp.utils.DownloadError as e:
+        print(f'[{__name__}] Selecting error: {e}')
+        return None     
 
+
+def select_format_tiktok(url):
+    try:
+        print(f'[{__name__}] Searching for the best format: {url}')
+        
+        for ydl_opts in YT_OPTS_LIST:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+                
+                selected_format = list(ydl.format_selector(info))[0]
+                file_size = selected_format.get('filesize') or selected_format.get('filesize_approx')
+                file_resolution = selected_format.get('resolution')
+                
+                if file_size and file_size <= MAX_SIZE:
+                    return selected_format
+                
+                if file_size and file_resolution:
+                    print(f'[{__name__}] Too big file ({(file_size/1024/1024):.3} mb - {file_resolution}): {url}')
+        return None
+                    
+    except yt_dlp.utils.DownloadError as e:
+        print(f'[{__name__}] Selecting error: {e}')
+        return None           
+    
 
 def download_youtube(url, selected_format):
     os.makedirs(OUTPUT_PATH, exist_ok=True)
-    ydl_opts = YT_OPTS
+    ydl_opts = YT_OPTS_LIST[0]
     ydl_opts['format'] = selected_format['format_id']
-    
-    file_size = (selected_format.get('filesize') or selected_format.get('filesize_approx'))/1024/1024
-    file_height = selected_format.get('height')
 
-    print(f'[{__name__}] Downloading {file_size:.3} mb ({file_height}p): {url}')
     try:
-        with yt_dlp.YoutubeDL(YT_OPTS) as ydl:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
 
@@ -85,21 +146,13 @@ def download_youtube(url, selected_format):
         return None
 
 
-def check_tiktok(url):
-    pass
-
-
 def download_tiktok(url):
     os.makedirs(OUTPUT_PATH, exist_ok=True)
-    ydl_opts = TT_OPTS
+    ydl_opts = YT_OPTS_LIST[0]
     ydl_opts['format'] = format['format_id']
     
-    file_size = (format.get('filesize') or format.get('filesize_approx'))/1024/1024
-    file_height = format.get('height')
-
-    print(f'[{__name__}] Downloading {file_size:.3} mb ({file_height}p): {url}')
     try:
-        with yt_dlp.YoutubeDL(YT_OPTS) as ydl:
+        with yt_dlp.YoutubeDL(TT_OPTS_LIST) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
 
