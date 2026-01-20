@@ -4,7 +4,7 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery, FSInputFile
 from aiogram.exceptions import TelegramNetworkError
 
-from services.downloader import select_format_youtube, download_youtube, select_format_tiktok, download_tiktok
+from services.downloader import select_format, download_video
 
 
 router = Router()
@@ -26,10 +26,8 @@ async def start_download(callback: CallbackQuery):
     url = callback.message.reply_to_message.text
     loop = asyncio.get_running_loop()
     
-    if platform == 'yt':
-        selected_format = await loop.run_in_executor(None, select_format_youtube, url)
-    elif format == 'tt':
-        selected_format = await loop.run_in_executor(None, select_format_tiktok, url)
+    if platform in ('yt', 'tt'):
+        selected_format = await loop.run_in_executor(None, select_format, url, platform)
     else:
         print(f'[{__name__}] Unkown platform: {url}')
         await callback.message.edit_text('Unknown platform')
@@ -45,10 +43,7 @@ async def start_download(callback: CallbackQuery):
     print(f'[{__name__}] Downloading file {file_size:.3} mb ({file_resolution}p): {url}')
     await callback.message.edit_text(f'Downloading...\n{file_size:.3} mb ({file_resolution}p)')
 
-    if platform == 'yt':
-        filename = await loop.run_in_executor(None, download_youtube, url, selected_format)
-    elif platform == 'tt':
-        filename = await loop.run_in_executor(None, download_tiktok, url, selected_format)
+    filename = await loop.run_in_executor(None, download_video, url, selected_format, platform)
 
     
     if not filename:
@@ -60,14 +55,12 @@ async def start_download(callback: CallbackQuery):
 
 
     try:
-        sent = False
         with open(filename, 'rb') as f:
             await callback.message.answer_video(
                 video=FSInputFile(filename),
                 caption=f'Your video ({file_resolution})',
                 request_timeout=180
             )
-        sent = True
         print(f'[{__name__}] Successfully sended file {file_size:.3} mb ({file_resolution}p): {filename}')
         
     except TelegramNetworkError:
@@ -75,8 +68,7 @@ async def start_download(callback: CallbackQuery):
         await callback.message.edit_text('Failed to send video')
         
     finally: 
-        if sent:
-            os.remove(filename)
-            print(f'[{__name__}] Removed file: {filename}')
-            await callback.message.delete()
+        os.remove(filename)
+        print(f'[{__name__}] Removed file: {filename}')
+        await callback.message.delete()
     
