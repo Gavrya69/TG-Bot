@@ -12,6 +12,7 @@ BASE_OPTS = {
     'no_warnings': True,
     'outtmpl': os.path.join(OUTPUT_PATH, '%(title)s [%(id)s].%(ext)s'),
     'extractor_args': {},
+    'verbose': True,
 }
 
 PLATFORM_OPTIONS = {
