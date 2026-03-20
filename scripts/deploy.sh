@@ -25,7 +25,7 @@ echo "==> Start new container"
 docker run -d \
   --name "$CONTAINER_NAME" \
   --restart unless-stopped \
-  --env-file .env \
+  #--env-file .env \
   "$IMAGE_NAME"
 
 echo "==> Done"
