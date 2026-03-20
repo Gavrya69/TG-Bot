@@ -6,3 +6,6 @@ __pycache__/
 .gitignore
 temp/
 test.py
+.env.example
+.github
+scripts

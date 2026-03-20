@@ -76,7 +76,7 @@ chmod +x /opt/tg-bot-yt-downloader/scripts/deploy.sh
 cat ~/.sshid_ed25519_actions.pub >> ~/.ssh/authorized_keys
 ```
 
-Забираем *приватный ключ* и вставляем в секрет `VPS_SSH_KEY`
+Забираем **приватный ключ** и вставляем в секрет `VPS_SSH_KEY`
 
 ```bash
 cat ~/.ssh/id_ed25519_actions
