@@ -70,10 +70,10 @@ chmod +x /opt/tg-bot-yt-downloader/scripts/deploy.sh
     ssh-keygen -t ed25519 -C "github-actions-vps" -f ~/.ssh/id_ed25519_actions
 ```
 
-Забираем публичный ключ и вставляем в секрет `VPS_SSH_KEY`
+Забираем *приватный ключ* и вставляем в секрет `VPS_SSH_KEY`
 
 ```bash
-cat ~/.ssh/id_ed25519_actions.pub
+cat ~/.ssh/id_ed25519_actions
 ```
 
 
