@@ -1,3 +1,4 @@
+import logging
 import os
 
 from aiogram import Bot, Dispatcher
@@ -5,6 +6,8 @@ from aiogram import Bot, Dispatcher
 from handlers.callbacks import router as callbacks_router
 from handlers.commands import router as commands_router
 from handlers.links import router as links_router
+
+logger = logging.getLogger(__name__)
 
 
 async def startup() -> None:
@@ -17,10 +20,10 @@ async def startup() -> None:
 
     @dp.startup()
     async def on_startup() -> None:
-        print(f"[{__name__}] Start.")
+        logger.info("Start.")
 
     @dp.shutdown()
     async def on_shutdown() -> None:
-        print(f"[{__name__}] Exit.")
+        logger.info("Exit.")
 
     await dp.start_polling(bot)

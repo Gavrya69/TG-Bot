@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 
 from aiogram import F, Router
@@ -8,6 +9,7 @@ from aiogram.types import CallbackQuery, FSInputFile
 from services.downloader import download_video, select_format
 
 router = Router()
+logger = logging.getLogger(__name__)
 
 
 @router.callback_query(F.data == "dl_no")
@@ -29,18 +31,18 @@ async def start_download(callback: CallbackQuery) -> None:
     if platform in ("yt", "tt"):
         selected_format = await loop.run_in_executor(None, select_format, url, platform)
     else:
-        print(f"[{__name__}] Unkown platform: {url}")
+        logger.warning("Unkown platform: %s", url)
         await callback.message.edit_text("Unknown platform")
         return
 
     if selected_format is None:
-        print(f"[{__name__}] Downloading is not possible: {url}")
+        logger.warning("Downloading is not possible: %s", url)
         await callback.message.edit_text("Downloading is not possible")
         return
 
     file_size = (selected_format.get("filesize") or selected_format.get("filesize_approx")) / 1024 / 1024
     file_resolution = selected_format.get("resolution")
-    print(f"[{__name__}] Downloading file {file_size:.3} mb ({file_resolution}p): {url}")
+    logger.debug("Downloading file %.3f mb (%sp): %s", file_size, file_resolution, url)
     await callback.message.edit_text(f"Downloading...\n{file_size:.3} mb ({file_resolution}p)")
 
     filename = await loop.run_in_executor(None, download_video, url, selected_format, platform)
@@ -49,7 +51,7 @@ async def start_download(callback: CallbackQuery) -> None:
         await callback.message.edit_text("Error")
         return
 
-    print(f"[{__name__}] Sending file {file_size:.3} mb ({file_resolution}p): {filename}")
+    logger.debug("Sending file %.3f mb (%sp): %s", file_size, file_resolution, filename)
     await callback.message.edit_text("Sending...")
 
     try:
@@ -59,13 +61,13 @@ async def start_download(callback: CallbackQuery) -> None:
                 caption=f"Your video ({file_resolution})",
                 request_timeout=180,
             )
-        print(f"[{__name__}] Successfully sended file {file_size:.3} mb ({file_resolution}p): {filename}")
+        logger.debug("Successfully sended file %.3f mb (%sp): %s", file_size, file_resolution, filename)
 
     except TelegramNetworkError:
-        print(f"[{__name__}] Failed to send video: {filename}")
+        logger.exception("Failed to send video: %s", filename)
         await callback.message.edit_text("Failed to send video")
 
     finally:
         os.remove(filename)
-        print(f"[{__name__}] Removed file: {filename}")
+        logger.debug("Removed file: %s", filename)
         await callback.message.delete()

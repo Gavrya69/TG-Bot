@@ -1,9 +1,11 @@
+import logging
 import re
 
 from aiogram import Router
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 router = Router()
+logger = logging.getLogger(__name__)
 
 YOUTUBE_RE = re.compile(
     r"(https?://(?:www\.)?(?:youtube\.com/(?:watch\?v=|shorts/)|youtu\.be/)[^\s]+)",
@@ -33,7 +35,7 @@ async def detect_link(message: Message) -> None:
     else:
         return
 
-    print(f"[{__name__}] Detected link: {message.text}")
+    logger.debug("Detected link: %s", message.text)
     await message.reply(
         "Download?",
         reply_markup=InlineKeyboardMarkup(

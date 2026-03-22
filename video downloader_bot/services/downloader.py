@@ -1,6 +1,9 @@
+import logging
 import os
 
 import yt_dlp
+
+logger = logging.getLogger(__name__)
 
 OUTPUT_PATH = r".\temp"
 MAX_SIZE = 50 * 1024 * 1024  # 50 MB
@@ -32,7 +35,7 @@ PLATFORM_OPTIONS = {
 
 
 def select_format(url, platform):
-    print(f"[{__name__}] Searching for the best format: {url}")
+    logger.debug("Searching for the best format: %s", url)
 
     if platform == "yt":
         BASE_OPTS["extractor_args"] = {"youtube": ["player_client=android"]}
@@ -53,12 +56,9 @@ def select_format(url, platform):
                     return selected_format
 
                 if file_size and file_resolution:
-                    print(f"[{__name__}] Too big file ({file_resolution} - {(file_size / 1024 / 1024):.3}): {url}")
-        return None
-
-    except yt_dlp.utils.DownloadError as e:
-        print(f"[{__name__}] Selecting error: {e}")
-        return None
+                    logger.warning("Too big file (%s - %.3f): %s", file_resolution, file_size / 1024 / 1024, url)
+    except yt_dlp.utils.DownloadError:
+        logger.exception("Selecting error:")
 
 
 def download_video(url, selected_format, platform) -> str | None:
@@ -75,10 +75,9 @@ def download_video(url, selected_format, platform) -> str | None:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
-
-        print(f"[{__name__}] Successfully downloaded {filename}: {url}")
-        return filename
-
-    except yt_dlp.utils.DownloadError as e:
-        print(f"[{__name__}] Download error from {platform}: {e}")
+    except yt_dlp.utils.DownloadError:
+        logger.exception("Download error from %s", platform)
         return None
+
+    logger.debug("Successfully downloaded %s: %s", filename, url)
+    return filename

@@ -8,7 +8,7 @@ from bot import startup
 
 def main() -> None:
     load_dotenv()
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.DEBUG)
     asyncio.run(startup())
 
 
