@@ -3,7 +3,7 @@ line-length = 120
 show-fixes = true
 target-version = "py312"
 src = [ # first-party
-  ".",
+  "video downloader_bot",
 ]
 
 [tool.ruff.lint]
@@ -85,7 +85,6 @@ max-line-length = 130
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
-"tests/*" = ["S101"]
 
 
 [tool.mypy]
@@ -93,5 +92,5 @@ plugins = ["pydantic.mypy"]
 check_untyped_defs = true
 ignore_missing_imports = true
 files = [ # Настройка файлов для обработки
-  ".",
+  "video downloader_bot",
 ]
