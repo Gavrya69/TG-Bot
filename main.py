@@ -1,54 +1,33 @@
 import asyncio
-from aiogram import Bot, Dispatcher
-
 import os
 
+from aiogram import Bot, Dispatcher
+from dotenv import load_dotenv
+
+from handlers.callbacks import router as callbacks_router
 from handlers.commands import router as commands_router
 from handlers.links import router as links_router
-from handlers.callbacks import router as callbacks_router
 
-from dotenv import load_dotenv
-load_dotenv() 
+load_dotenv()
 
-bot = Bot(token=os.getenv('TOKEN'))
-dp= Dispatcher()
+bot = Bot(token=os.getenv("TOKEN"))
+dp = Dispatcher()
 
 dp.include_router(commands_router)
 dp.include_router(links_router)
 dp.include_router(callbacks_router)
 
+
 async def main():
-    print(f'[{__name__}] Start.')
+    print(f"[{__name__}] Start.")
     await dp.start_polling(bot)
 
-if __name__ == '__main__':      
+
+if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print(f'[{__name__}] Exit.')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        print(f"[{__name__}] Exit.")
 
 
 # import asyncio
@@ -73,19 +52,19 @@ if __name__ == '__main__':
 
 # async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #     await update.message.reply_text('start')
-    
+
 # async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #     await update.message.reply_text('help')
-    
+
 # async def custom_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #     await update.message.reply_text('custom')
-    
+
 # #===================================================================================================
 
-    
+
 # async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #     text: str = update.message.text
-    
+
 #     url = URL_RE.findall(text)[0] if URL_RE.findall(text) else False
 #     if not url: return
 #     buttons = InlineKeyboardMarkup([
@@ -94,7 +73,7 @@ if __name__ == '__main__':
 #             InlineKeyboardButton('Нет', callback_data=None),
 #         ]
 #     ])
-    
+
 #     await update.message.reply_text(
 #         'Скачать?',
 #         reply_markup=buttons,
@@ -127,24 +106,23 @@ if __name__ == '__main__':
 
 #     os.remove(video_path)
 
-    
+
 # async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #     #print(f'Update {update} caused error {context.error}')
 #     pass
-    
-    
+
+
 # async def handle_video(update: Update, context: ContextTypes.DEFAULT_TYPE):
 #     pass
-
 
 
 # #===================================================================================================
 
 # def main():
 #     print(f'[{__name__}] Starting...')
-    
+
 #     app = Application.builder().token(TOKEN).build()
-    
+
 #     # Commands
 #     app.add_handler(CommandHandler('start', start_command))
 #     app.add_handler(CommandHandler('help', help_command))
@@ -153,13 +131,12 @@ if __name__ == '__main__':
 #     # Messages
 #     app.add_handler(MessageHandler(filters.TEXT, handle_message))
 #     app.add_handler(MessageHandler(filters.VIDEO, handle_video))
-    
+
 #     # Errors
 #     app.add_error_handler(error)
-    
+
 #     print(f'[{__name__}] Polling...')
 #     app.run_polling(poll_interval=1)
-    
+
 # if __name__ == '__main__':
 #     main()
-    
