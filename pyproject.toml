@@ -1,0 +1,96 @@
+[tool.ruff]
+line-length = 120
+show-fixes = true
+target-version = "py312"
+src = [ # first-party
+  "video downloader_bot",
+]
+
+[tool.ruff.lint]
+preview = true
+explicit-preview-rules = true
+extend-select = [
+  "ERA",   # eradicate
+  "YTT",   # flake8-2020
+  "ANN",   # flake8-annotations
+  "ASYNC", # flake8-async
+  "S",     # flake8-bandit
+  "BLE",   # flake8-blind-except 
+  "FBT",   # flake8-boolean-trap
+  "B",     # flake8-bugbear
+  "A",     # flake8-builtins
+  "COM",   # flake8-commas
+  "C4",    # flake8-comprehensions
+  "EM",    # flake8-errmsg 
+  "EXE",   # flake8-executable
+  "FIX",   # flake8-fixme
+  "INT",   # flake8-gettext
+  "ISC",   # flake8-implicit-str-concat
+  "ICN",   # flake8-import-conventions
+  "LOG",   # flake8-logging
+  "G",     # flake8-logging-format
+  "INP",   # flake8-no-pep420
+  "PIE",   # flake8-pie
+  "PYI",   # flake8-pyi
+  "PT",    # flake8-pytest-style
+  "Q",     # flake8-quotes
+  "RSE",   # flake8-raise
+  "RET",   # flake8-return
+  "SLF",   # flake8-self
+  "SIM",   # flake8-simplify
+  "TID",   # flake8-tidy-imports
+  "TD",    # flake8-todos
+  "TC",    # flake8-type-checking
+  "ARG",   # flake8-unused-arguments
+  "PTH",   # flake8-use-pathlib
+  "FLY",   # flynt
+  "I",     # isort
+  "PERF",  # Perflint
+  "E",     # Error
+  "W",     # Warning
+  "DOC",   # pydoclint
+  # "D",     # pydocstyle
+  "F",    # Pyflakes
+  "PGH",  # pygrep-hooks
+  "PLC",  # Convention
+  "PLR",  # Refactor
+  "PLE",  # Error
+  "PLW",  # Warning
+  "UP",   # pyupgrade
+  "FURB", # refurb
+  "RUF",  # Ruff-specific rules
+  "TRY",  # tryceratops
+]
+ignore = [
+  "ANN002",
+  "ANN003",
+  "ANN401",
+  "PLR2004",
+  "PLR0912",
+  "PLR0913",
+  "E501",
+  "RUF001",
+  "RUF002",
+  "RUF003",
+  "D100",
+  "D104",
+  "D105",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.pycodestyle]
+max-line-length = 130
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+check_untyped_defs = true
+ignore_missing_imports = true
+files = [ # Настройка файлов для обработки
+  "video downloader_bot",
+]

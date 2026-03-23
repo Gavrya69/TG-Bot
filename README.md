@@ -1,6 +1,7 @@
 # Локальное развертнывание без CI\CD
 
 *Учтите что в этом варианте `.env` копируется во внутрь контейнера. Вы можете подать переменные окружения с помощью `--env-file`.*
+
 ```bash
 CONTAINER_NAME="tg-bot-yt-downloader"
 IMAGE_NAME="tg-bot-yt-downloader:latest"
@@ -44,8 +45,7 @@ ssh-add ~/.ssh/id_ed25519_github
 cat ~/.ssh/id_ed25519_github.pub
 ```
 
-‼️ ЭТО НЕ `VPS_SSH_KEY`, это ключ для клонирования репозитория 
-
+‼️ ЭТО НЕ `VPS_SSH_KEY`, это ключ для клонирования репозитория
 
 Создать SSH-конфиг:
 
@@ -60,6 +60,7 @@ EOF
 ```
 
 Проверить доступ:
+
 ```bash
 ssh -T git@github.com
 ```
@@ -69,7 +70,8 @@ ssh -T git@github.com
 ```bash
 cd /opt/tg-bot-yt-downloader
 git clone REPO .   
-``` 
+```
+
 в папку  `/opt/tg-bot-yt-downloader`
 
 ‼️ НЕ ЗАБЫВАЕМ ПРО `.env`. Пример:`.env.example`
@@ -98,8 +100,7 @@ cat ~/.ssh/id_ed25519_github_actions.pub >> ~/.ssh/authorized_keys
 cat ~/.ssh/id_ed25519_github_actions
 ```
 
-
-#Секреты в GitHub:
+# Секреты в GitHub:
 
 - `VPS_HOST` — IP или домен VPS
 
@@ -109,12 +110,12 @@ cat ~/.ssh/id_ed25519_github_actions
 
 - `VPS_SSH_KEY` — приватный SSH-ключ для GitHub Actions
 
-
 # ‼️ ЭТО СТОИТ ПРОЧИТАТЬ
 
 Ребята, docker какашка. Если вы питонист (боже успаси) то .env можно читать миллионом способов.
 
 Можно подать его при билде контейнера с помощью  `--env-file` (в `scripts\deploy.sh`)
+
 ```bash
 docker run -d \
   --name "$CONTAINER_NAME" \
@@ -124,7 +125,7 @@ docker run -d \
 
 ```
 
-Можно скопировать в `Dockerfile` 
+Можно скопировать в `Dockerfile`
 
 ```Dockerfile
   COPY .env .env
@@ -132,11 +133,11 @@ docker run -d \
 
 ‼️**Делайте что-то одно, у меня деплой падал если сразу все варианты**
 
-
-## Жесткий Deploy. 
+## Жесткий Deploy
 
 Сейчас Deploy сносит все локальные изменения на vps, качает и запускает то что запушено на git. Поэтому если что-то менялди на vps локально, не забывайте сохранять.
 Чтобы указать файлы которые не должны удаляться используейте `-e UR_FILE` в файле `scripts\deploy.sh`
+
 ```bash
 git fetch origin
 git checkout "$BRANCH"
