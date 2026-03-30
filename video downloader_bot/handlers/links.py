@@ -35,19 +35,26 @@ async def detect_link(message: Message) -> None:
     else:
         return
 
-    logger.debug("Detected link: %s", message.text)
+    logger.debug("Detected link: %s", url)
+
     await message.reply(
-        "Download?",
+        "Choose format:",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
-                        text="Yes",
-                        callback_data=f"dl_yes:{platform}",
+                        text="MP3",
+                        callback_data=f"dl_audio:{platform}",
                     ),
                     InlineKeyboardButton(
-                        text="No",
-                        callback_data="dl_no",
+                        text="MP4",
+                        callback_data=f"dl_video:{platform}",
+                    ),
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="Cancel",
+                        callback_data="dl_cancel",
                     ),
                 ],
             ],
