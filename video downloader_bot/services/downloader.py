@@ -1,14 +1,18 @@
 import logging
 import os
+import shutil
+from enum import Enum
 
 import yt_dlp
+
+from services.cookies import get_cookies_path
 
 logger = logging.getLogger(__name__)
 
 OUTPUT_PATH = "./temp"
-MAX_VIDEO_SIZE = 50 * 1024 * 1024      # 50 MB
-MAX_AUDIO_SIZE = 50 * 1024 * 1024     
-AUDIO_BITRATE = "192" # in kbps
+MAX_VIDEO_SIZE = 50 * 1024 * 1024  # 50 MB
+MAX_AUDIO_SIZE = 50 * 1024 * 1024
+AUDIO_BITRATE = "192"  # in kbps
 
 BASE_OPTS = {
     "noplaylist": True,
@@ -17,20 +21,29 @@ BASE_OPTS = {
     "outtmpl": os.path.join(OUTPUT_PATH, "%(title)s [%(id)s].%(ext)s"),
     "extractor_args": {},
     "verbose": True,
+    # Required for modern YouTube JS (n/sig) challenges.
+    "remote_components": {"ejs:github"},
 }
 
+# Prefer H.264+m4a for Telegram; then looser fallbacks (any codec / progressive).
 VIDEO_PLATFORM_OPTIONS = {
     "yt": [
         'bv*[ext=mp4][height<=1080][vcodec~="^avc"]+ba[ext=m4a]/b[ext=mp4][height<=1080]',
         'bv*[ext=mp4][height<=720][vcodec~="^avc"]+ba[ext=m4a]/b[ext=mp4][height<=720]',
         'bv*[ext=mp4][height<=480][vcodec~="^avc"]+ba[ext=m4a]/b[ext=mp4][height<=480]',
         'bv*[ext=mp4][height<=360][vcodec~="^avc"]+ba[ext=m4a]/b[ext=mp4][height<=360]',
+        # Fallback when AVC/m4a pair is missing (SABR / client quirks).
+        "bv*[height<=1080]+ba/b[height<=1080]",
+        "bv*[height<=720]+ba/b[height<=720]",
+        "bv*[height<=480]+ba/b[height<=480]",
+        "best[height<=720]/best",
     ],
     "tt": [
         "mp4[height<=1080]",
         "mp4[height<=720]",
         "mp4[height<=480]",
         "mp4[height<=360]",
+        "best",
     ],
 }
 
@@ -40,59 +53,161 @@ AUDIO_PLATFORM_OPTIONS = {
 }
 
 
-def _extractor_args_for(platform: str) -> dict:
-    if platform == "yt":
-        return {"youtube": ["player_client=android"]}
-    if platform == "tt":
+class SelectStatus(str, Enum):
+    OK = "ok"
+    TOO_LARGE = "too_large"
+    FAILED = "failed"
+
+
+def _extractor_args_for(platform: str, *, use_cookies: bool = False) -> dict:
+    if platform != "yt":
         return {}
-    return {}
+    # Let yt-dlp pick defaults; with cookies it can use tv/web clients that
+    # unlock age-restricted content. Overriding to only android/web often
+    # loses formats (SABR-only / no URL).
+    if use_cookies:
+        return {}
+    return {"youtube": {"player_client": ["android", "web", "tv"]}}
 
 
-def select_video_format(url: str, platform: str):
-    logger.debug("Searching for the best video format: %s", url)
+def _build_opts(platform: str, *, use_cookies: bool = False) -> dict:
+    opts = {
+        **BASE_OPTS,
+        "extractor_args": _extractor_args_for(platform, use_cookies=use_cookies),
+    }
+    if platform == "yt" and shutil.which("node"):
+        opts["js_runtimes"] = {"node": {}}
 
-    try:
-        for fmt in VIDEO_PLATFORM_OPTIONS[platform]:
-            ydl_opts = {
-                **BASE_OPTS,
-                "format": fmt,
-                "merge_output_format": "mp4",
-                "extractor_args": _extractor_args_for(platform),
-            }
+    if use_cookies:
+        cookie_path = get_cookies_path()
+        if cookie_path.is_file():
+            opts["cookiefile"] = str(cookie_path)
+        else:
+            logger.warning("use_cookies=True but cookies file missing: %s", cookie_path)
 
+    return opts
+
+
+def _format_id_from_selection(formats: list[dict]) -> str:
+    """Join multi-stream selection into yt-dlp format id (e.g. 136+140)."""
+    return "+".join(f["format_id"] for f in formats if f.get("format_id"))
+
+
+def _selection_size(formats: list[dict]) -> int | None:
+    total = 0
+    known = False
+    for f in formats:
+        size = f.get("filesize") or f.get("filesize_approx")
+        if size:
+            total += size
+            known = True
+    return total if known else None
+
+
+def _selection_resolution(formats: list[dict]) -> str | None:
+    for f in formats:
+        if f.get("vcodec") and f.get("vcodec") != "none":
+            return f.get("resolution") or (
+                f"{f['height']}p" if f.get("height") else None
+            )
+    return formats[0].get("resolution") if formats else None
+
+
+def select_video_format(
+    url: str,
+    platform: str,
+    *,
+    use_cookies: bool = False,
+) -> tuple[dict | None, SelectStatus]:
+    logger.debug(
+        "Searching for the best video format (cookies=%s): %s",
+        use_cookies,
+        url,
+    )
+
+    saw_extract_ok = False
+    last_error: Exception | None = None
+
+    for fmt in VIDEO_PLATFORM_OPTIONS[platform]:
+        ydl_opts = {
+            **_build_opts(platform, use_cookies=use_cookies),
+            "format": fmt,
+            "merge_output_format": "mp4",
+        }
+
+        try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
-                selected_format = list(ydl.format_selector(info))[0]
+                selected = list(ydl.format_selector(info))
+                if not selected:
+                    continue
 
-                file_size = selected_format.get("filesize") or selected_format.get("filesize_approx")
-                file_resolution = selected_format.get("resolution")
+                saw_extract_ok = True
+                file_size = _selection_size(selected)
+                file_resolution = _selection_resolution(selected)
+                format_id = _format_id_from_selection(selected)
 
                 if file_size and file_size <= MAX_VIDEO_SIZE:
-                    return selected_format
+                    return {
+                        "format_id": format_id,
+                        "resolution": file_resolution,
+                        "filesize": file_size,
+                    }, SelectStatus.OK
 
-                if file_size and file_resolution:
-                    logger.warning(
-                        "Too big video (%s - %.3f MB): %s",
-                        file_resolution,
-                        file_size / 1024 / 1024,
-                        url,
-                    )
+                if file_size is None:
+                    # Size unknown — allow download attempt at this quality.
+                    return {
+                        "format_id": format_id,
+                        "resolution": file_resolution,
+                        "filesize": None,
+                    }, SelectStatus.OK
 
-        return None
+                logger.warning(
+                    "Too big video (%s - %.3f MB, fmt=%s): %s",
+                    file_resolution,
+                    file_size / 1024 / 1024,
+                    format_id,
+                    url,
+                )
 
-    except yt_dlp.utils.DownloadError:
-        logger.exception("Video selecting error:")
-        return None
+        except yt_dlp.utils.DownloadError as exc:
+            last_error = exc
+            msg = str(exc).lower()
+            # Format missing for this selector — try next ladder step.
+            if "requested format is not available" in msg or "format is not available" in msg:
+                logger.debug("Format not available (%s), trying next: %s", fmt, url)
+                continue
+            # Auth / extract failures — no point trying other format strings.
+            logger.exception("Video selecting error (cookies=%s):", use_cookies)
+            return None, SelectStatus.FAILED
+        except Exception:
+            logger.exception("Unexpected video select error (cookies=%s):", use_cookies)
+            return None, SelectStatus.FAILED
+
+    if saw_extract_ok:
+        return None, SelectStatus.TOO_LARGE
+
+    if last_error is not None:
+        logger.error("Video selecting failed (cookies=%s): %s", use_cookies, last_error)
+    return None, SelectStatus.FAILED
 
 
-def select_audio_info(url: str, platform: str):
-    logger.debug("Searching for the best audio format: %s", url)
+def select_audio_info(
+    url: str,
+    platform: str,
+    *,
+    use_cookies: bool = False,
+) -> tuple[dict | None, SelectStatus]:
+    logger.debug(
+        "Searching for the best audio format (cookies=%s): %s",
+        use_cookies,
+        url,
+    )
 
     try:
         ydl_opts = {
-            **BASE_OPTS,
+            **_build_opts(platform, use_cookies=use_cookies),
             "format": AUDIO_PLATFORM_OPTIONS[platform],
-            "extractor_args": _extractor_args_for(platform),
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -104,47 +219,71 @@ def select_audio_info(url: str, platform: str):
             file_size = audio_info.get("filesize") or audio_info.get("filesize_approx")
 
             if file_size and file_size <= MAX_AUDIO_SIZE:
-                return audio_info
+                return audio_info, SelectStatus.OK
 
             if file_size:
-                logger.warning("Too big audio (%.3f MB): %s", file_size / 1024 / 1024, url)
+                logger.warning(
+                    "Too big audio (%.3f MB): %s",
+                    file_size / 1024 / 1024,
+                    url,
+                )
+                return None, SelectStatus.TOO_LARGE
 
-            return audio_info if file_size is None else None
+            return audio_info, SelectStatus.OK
 
     except yt_dlp.utils.DownloadError:
-        logger.exception("Audio selecting error:")
-        return None
+        logger.exception("Audio selecting error (cookies=%s):", use_cookies)
+        return None, SelectStatus.FAILED
 
 
-def download_video(url: str, selected_format, platform: str) -> str | None:
+def download_video(
+    url: str,
+    selected_format: dict,
+    platform: str,
+    *,
+    use_cookies: bool = False,
+) -> str | None:
     os.makedirs(OUTPUT_PATH, exist_ok=True)
 
     ydl_opts = {
-        **BASE_OPTS,
+        **_build_opts(platform, use_cookies=use_cookies),
         "format": selected_format["format_id"],
         "merge_output_format": "mp4",
-        "extractor_args": _extractor_args_for(platform),
     }
 
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=True)
             filename = ydl.prepare_filename(info)
+            # After merge, extension is often mp4 even if prepare_filename used other ext.
+            base, ext = os.path.splitext(filename)
+            if ext.lower() != ".mp4":
+                mp4_name = base + ".mp4"
+                if os.path.exists(mp4_name):
+                    filename = mp4_name
     except yt_dlp.utils.DownloadError:
-        logger.exception("Video download error from %s", platform)
+        logger.exception(
+            "Video download error from %s (cookies=%s)",
+            platform,
+            use_cookies,
+        )
         return None
 
     logger.debug("Successfully downloaded video %s: %s", filename, url)
     return filename
 
 
-def download_audio(url: str, platform: str) -> str | None:
+def download_audio(
+    url: str,
+    platform: str,
+    *,
+    use_cookies: bool = False,
+) -> str | None:
     os.makedirs(OUTPUT_PATH, exist_ok=True)
 
     ydl_opts = {
-        **BASE_OPTS,
+        **_build_opts(platform, use_cookies=use_cookies),
         "format": AUDIO_PLATFORM_OPTIONS[platform],
-        "extractor_args": _extractor_args_for(platform),
         "postprocessors": [
             {
                 "key": "FFmpegExtractAudio",
@@ -160,7 +299,11 @@ def download_audio(url: str, platform: str) -> str | None:
             original_filename = ydl.prepare_filename(info)
             filename = os.path.splitext(original_filename)[0] + ".mp3"
     except yt_dlp.utils.DownloadError:
-        logger.exception("Audio download error from %s", platform)
+        logger.exception(
+            "Audio download error from %s (cookies=%s)",
+            platform,
+            use_cookies,
+        )
         return None
 
     logger.debug("Successfully downloaded audio %s: %s", filename, url)
