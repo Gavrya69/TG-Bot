@@ -25,29 +25,25 @@ BASE_OPTS = {
     "remote_components": {"ejs:github"},
 }
 
-# Prefer H.264+m4a for Telegram; then looser fallbacks (any codec / progressive).
-# Shorts are vertical: a 1080p frame is 1080x1920, so height<=1080 drops it.
-# Cap both sides. The first step has no cap and is kept only when the file fits 50 MB.
-SHORTS_YT_FORMATS = [
-    'bv*[ext=mp4][vcodec~="^avc"]+ba[ext=m4a]/b[ext=mp4]',
-    'bv*[ext=mp4][vcodec~="^avc"][width<=1920][height<=1920]+ba[ext=m4a]/b[ext=mp4][width<=1920][height<=1920]',
-    'bv*[ext=mp4][vcodec~="^avc"][width<=1280][height<=1280]+ba[ext=m4a]/b[ext=mp4][width<=1280][height<=1280]',
-    'bv*[ext=mp4][vcodec~="^avc"][width<=854][height<=854]+ba[ext=m4a]/b[ext=mp4][width<=854][height<=854]',
-    'bv*[ext=mp4][vcodec~="^avc"][width<=640][height<=640]+ba[ext=m4a]/b[ext=mp4][width<=640][height<=640]',
-    "bv*[width<=1920][height<=1920]+ba/b[width<=1920][height<=1920]",
+def _yt_box(limit: int) -> str:
+    """Return the best stream that fits in a square of this many pixels."""
+    return (
+        f"bv*[width<={limit}][height<={limit}]+ba/"
+        f"b[width<={limit}][height<={limit}]"
+    )
+
+
+# Highest frame first, any codec. 1440p vertical is 1440x2560, so a height cap drops it.
+# Later steps only run when the file is over 50 MB.
+YT_FORMATS = [
+    "bv*+ba/b",
+    _yt_box(2560),
+    _yt_box(1920),
+    _yt_box(1280),
+    _yt_box(854),
+    _yt_box(640),
 ]
 VIDEO_PLATFORM_OPTIONS = {
-    "yt": [
-        'bv*[ext=mp4][height<=1080][vcodec~="^avc"]+ba[ext=m4a]/b[ext=mp4][height<=1080]',
-        'bv*[ext=mp4][height<=720][vcodec~="^avc"]+ba[ext=m4a]/b[ext=mp4][height<=720]',
-        'bv*[ext=mp4][height<=480][vcodec~="^avc"]+ba[ext=m4a]/b[ext=mp4][height<=480]',
-        'bv*[ext=mp4][height<=360][vcodec~="^avc"]+ba[ext=m4a]/b[ext=mp4][height<=360]',
-        # Fallback when AVC/m4a pair is missing (SABR / client quirks).
-        "bv*[height<=1080]+ba/b[height<=1080]",
-        "bv*[height<=720]+ba/b[height<=720]",
-        "bv*[height<=480]+ba/b[height<=480]",
-        "best[height<=720]/best",
-    ],
     "tt": [
         "mp4[height<=1080]",
         "mp4[height<=720]",
@@ -69,13 +65,9 @@ class SelectStatus(str, Enum):
     FAILED = "failed"
 
 
-def _is_youtube_short(url: str) -> bool:
-    return "/shorts/" in url.lower()
-
-
-def _video_format_ladder(platform: str, url: str) -> list[str]:
-    if platform == "yt" and _is_youtube_short(url):
-        return SHORTS_YT_FORMATS
+def _video_format_ladder(platform: str, _url: str) -> list[str]:
+    if platform == "yt":
+        return YT_FORMATS
     return VIDEO_PLATFORM_OPTIONS[platform]
 
 
@@ -125,6 +117,14 @@ def _selection_size(formats: list[dict]) -> int | None:
     return total if known else None
 
 
+def _selection_vcodec(formats: list[dict]) -> str | None:
+    for fmt in formats:
+        vcodec = fmt.get("vcodec")
+        if vcodec and vcodec != "none":
+            return vcodec
+    return None
+
+
 def _selection_resolution(formats: list[dict]) -> str | None:
     for f in formats:
         if f.get("vcodec") and f.get("vcodec") != "none":
@@ -168,20 +168,18 @@ def select_video_format(
                 file_resolution = _selection_resolution(selected)
                 format_id = _format_id_from_selection(selected)
 
+                chosen = {
+                    "format_id": format_id,
+                    "resolution": file_resolution,
+                    "filesize": file_size,
+                    "vcodec": _selection_vcodec(selected),
+                }
                 if file_size and file_size <= MAX_VIDEO_SIZE:
-                    return {
-                        "format_id": format_id,
-                        "resolution": file_resolution,
-                        "filesize": file_size,
-                    }, SelectStatus.OK
+                    return chosen, SelectStatus.OK
 
                 if file_size is None:
                     # Size unknown — allow download attempt at this quality.
-                    return {
-                        "format_id": format_id,
-                        "resolution": file_resolution,
-                        "filesize": None,
-                    }, SelectStatus.OK
+                    return chosen, SelectStatus.OK
 
                 logger.warning(
                     "Too big video (%s - %.3f MB, fmt=%s): %s",

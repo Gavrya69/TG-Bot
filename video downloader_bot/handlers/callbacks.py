@@ -150,12 +150,26 @@ async def start_video_download(callback: CallbackQuery) -> None:
 
     await callback.message.edit_text("Sending video...")
 
+    vcodec = selected_format.get("vcodec") or ""
+    caption = f"Your video ({file_resolution})"
+    if vcodec:
+        caption = f"{caption}\n{vcodec}"
+    # Telegram plays H.264 inline. AV1 and VP9 are sent as a file so the pixels stay intact.
+    send_as_file = not vcodec.startswith("avc")
+
     try:
-        await callback.message.answer_video(
-            video=FSInputFile(filename),
-            caption=f"Your video ({file_resolution})",
-            request_timeout=180,
-        )
+        if send_as_file:
+            await callback.message.answer_document(
+                document=FSInputFile(filename),
+                caption=caption,
+                request_timeout=180,
+            )
+        else:
+            await callback.message.answer_video(
+                video=FSInputFile(filename),
+                caption=caption,
+                request_timeout=180,
+            )
         logger.debug("Successfully sent video: %s", filename)
 
     except TelegramNetworkError:
