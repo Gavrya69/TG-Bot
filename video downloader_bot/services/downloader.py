@@ -26,6 +26,16 @@ BASE_OPTS = {
 }
 
 # Prefer H.264+m4a for Telegram; then looser fallbacks (any codec / progressive).
+# Shorts are vertical: a 1080p frame is 1080x1920, so height<=1080 drops it.
+# Cap both sides. The first step has no cap and is kept only when the file fits 50 MB.
+SHORTS_YT_FORMATS = [
+    'bv*[ext=mp4][vcodec~="^avc"]+ba[ext=m4a]/b[ext=mp4]',
+    'bv*[ext=mp4][vcodec~="^avc"][width<=1920][height<=1920]+ba[ext=m4a]/b[ext=mp4][width<=1920][height<=1920]',
+    'bv*[ext=mp4][vcodec~="^avc"][width<=1280][height<=1280]+ba[ext=m4a]/b[ext=mp4][width<=1280][height<=1280]',
+    'bv*[ext=mp4][vcodec~="^avc"][width<=854][height<=854]+ba[ext=m4a]/b[ext=mp4][width<=854][height<=854]',
+    'bv*[ext=mp4][vcodec~="^avc"][width<=640][height<=640]+ba[ext=m4a]/b[ext=mp4][width<=640][height<=640]',
+    "bv*[width<=1920][height<=1920]+ba/b[width<=1920][height<=1920]",
+]
 VIDEO_PLATFORM_OPTIONS = {
     "yt": [
         'bv*[ext=mp4][height<=1080][vcodec~="^avc"]+ba[ext=m4a]/b[ext=mp4][height<=1080]',
@@ -59,15 +69,26 @@ class SelectStatus(str, Enum):
     FAILED = "failed"
 
 
+def _is_youtube_short(url: str) -> bool:
+    return "/shorts/" in url.lower()
+
+
+def _video_format_ladder(platform: str, url: str) -> list[str]:
+    if platform == "yt" and _is_youtube_short(url):
+        return SHORTS_YT_FORMATS
+    return VIDEO_PLATFORM_OPTIONS[platform]
+
+
 def _extractor_args_for(platform: str, *, use_cookies: bool = False) -> dict:
     if platform != "yt":
         return {}
-    # Let yt-dlp pick defaults; with cookies it can use tv/web clients that
-    # unlock age-restricted content. Overriding to only android/web often
-    # loses formats (SABR-only / no URL).
+    # Cookies stay on yt-dlp defaults: android_vr rejects account cookies,
+    # and tv/web can still open age-restricted videos.
     if use_cookies:
         return {}
-    return {"youtube": {"player_client": ["android", "web", "tv"]}}
+    # android/web/tv currently expose only a 360p URL (SABR). android_vr
+    # still returns a direct 1080p H.264 URL without a PO token.
+    return {"youtube": {"player_client": ["android_vr"]}}
 
 
 def _build_opts(platform: str, *, use_cookies: bool = False) -> dict:
@@ -128,7 +149,7 @@ def select_video_format(
     saw_extract_ok = False
     last_error: Exception | None = None
 
-    for fmt in VIDEO_PLATFORM_OPTIONS[platform]:
+    for fmt in _video_format_ladder(platform, url):
         ydl_opts = {
             **_build_opts(platform, use_cookies=use_cookies),
             "format": fmt,
