@@ -74,10 +74,11 @@ def _video_format_ladder(platform: str, _url: str) -> list[str]:
 def _extractor_args_for(platform: str, *, use_cookies: bool = False) -> dict:
     if platform != "yt":
         return {}
-    # Cookies stay on yt-dlp defaults: android_vr rejects account cookies,
-    # and tv/web can still open age-restricted videos.
+    # android_vr rejects account cookies. Default tv/web clients now return
+    # SABR-only streams and fail age-restricted videos with "page needs to be
+    # reloaded". mweb and web_creator still give a direct mp4 when cookies are set.
     if use_cookies:
-        return {}
+        return {"youtube": {"player_client": ["mweb", "web_creator"]}}
     # android/web/tv currently expose only a 360p URL (SABR). android_vr
     # still returns a direct 1080p H.264 URL without a PO token.
     return {"youtube": {"player_client": ["android_vr"]}}
